@@ -288,6 +288,85 @@
       font-weight: 600;
     }
 
+    .celebration-dialog {
+      position: relative;
+      width: min(calc(100% - 32px), 480px);
+      overflow: hidden;
+      padding: 48px 30px 32px;
+      border: 1px solid #cdddc6;
+      border-radius: 26px;
+      color: var(--ink);
+      background: var(--paper);
+      box-shadow: 0 28px 90px #102d1d45;
+      text-align: center;
+    }
+
+    .celebration-dialog[open] {
+      animation: celebrate-in 450ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .celebration-dialog::backdrop {
+      background: #102d1db8;
+      backdrop-filter: blur(5px);
+      animation: backdrop-in 300ms ease-out both;
+    }
+
+    .celebration-confetti {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 100px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      top: -12px;
+      left: var(--confetti-left);
+      width: 9px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--confetti-color);
+      animation: confetti-fall 1.8s var(--confetti-delay) ease-in both;
+    }
+
+    .confetti-piece:nth-child(3n) {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .celebration-title {
+      position: relative;
+      margin: 14px 0 12px;
+      color: var(--green-dark);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.7rem, 6vw, 2.3rem);
+      font-weight: 400;
+      line-height: 1.25;
+      animation: message-in 550ms 100ms both;
+    }
+
+    .celebration-close {
+      position: relative;
+      margin-top: 12px;
+      padding: 11px 22px;
+      border: 1px solid var(--green);
+      border-radius: 999px;
+      color: white;
+      background: var(--green);
+      cursor: pointer;
+    }
+
+    .celebration-close:hover {
+      background: var(--green-dark);
+    }
+
+    .celebration-close:focus-visible {
+      outline: 3px solid var(--lime);
+      outline-offset: 3px;
+    }
+
     footer {
       margin-top: 24px;
       color: #718475;
@@ -303,6 +382,49 @@
       to {
         opacity: 1;
         transform: translate(-50%, -50%) rotate(-12deg);
+      }
+    }
+
+    @keyframes celebrate-in {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.82);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes backdrop-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes message-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        opacity: 0;
+        transform: translateY(-10px) rotate(0);
+      }
+
+      15% { opacity: 1; }
+
+      100% {
+        opacity: 0;
+        transform: translateY(120px) rotate(240deg);
       }
     }
 
@@ -375,6 +497,14 @@
     </article>
   </main>
 
+  <dialog class="celebration-dialog" id="celebration-dialog" aria-labelledby="celebration-title">
+    <div class="celebration-confetti" id="celebration-confetti" aria-hidden="true"></div>
+    <h2 class="celebration-title" id="celebration-title">
+      ¡Terminaste! Eres muy especial, Erika. Que siempre se cumplan los deseos de tu corazón.
+    </h2>
+    <button class="celebration-close" id="celebration-close" type="button">Cerrar</button>
+  </dialog>
+
   <script>
     const words = [
       "Amada",
@@ -402,7 +532,7 @@
       "#aed56c", "#c9e78e", "#d9ec9d", "#b3db79"
     ];
     const targetScore = words.length;
-    const roundLength = 30;
+    const roundLength = 25;
     const leafMoveInterval = 300;
     const gameBoard = document.querySelector("#game-board");
     const movingLeaf = document.querySelector("#moving-leaf");
@@ -411,11 +541,31 @@
     const timeDisplay = document.querySelector("#time");
     const gameStatus = document.querySelector("#game-status");
     const startButton = document.querySelector("#start-button");
+    const celebrationDialog = document.querySelector("#celebration-dialog");
+    const celebrationConfetti = document.querySelector("#celebration-confetti");
+    const celebrationClose = document.querySelector("#celebration-close");
     let score = 0;
     let timeLeft = roundLength;
     let timerId = null;
     let leafMoveTimerId = null;
     let gameRunning = false;
+
+    function showCelebration(message) {
+      const colors = ["#b7df4f", "#28613d", "#d4ed92", "#79a94b", "#e8f3d4"];
+      celebrationConfetti.replaceChildren();
+      document.querySelector("#celebration-title").textContent = message;
+
+      for (let index = 0; index < 36; index += 1) {
+        const piece = document.createElement("span");
+        piece.className = "confetti-piece";
+        piece.style.setProperty("--confetti-left", `${Math.random() * 100}%`);
+        piece.style.setProperty("--confetti-color", colors[index % colors.length]);
+        piece.style.setProperty("--confetti-delay", `${Math.random() * 0.65}s`);
+        celebrationConfetti.append(piece);
+      }
+
+      celebrationDialog.showModal();
+    }
 
     function moveLeaf() {
       const maxLeft = gameBoard.clientWidth - movingLeaf.offsetWidth;
@@ -448,12 +598,20 @@
       gameBoard.setAttribute("aria-disabled", "true");
 
       if (won) {
-        gameStatus.textContent =
-          "¡Terminaste! Eres muy especial, Erika. Que siempre se cumplan los deseos de tu corazón.";
+        gameStatus.textContent = "¡Terminaste!";
+        showCelebration(
+          "¡Terminaste! Eres muy especial, Erika. Que siempre se cumplan los deseos de tu corazón."
+        );
       } else {
-        gameStatus.textContent = "Se acabó el tiempo. Puedes seguir llenando el árbol.";
+        score = 0;
+        scoreDisplay.textContent = String(score);
+        timeLeft = roundLength;
+        timeDisplay.textContent = String(timeLeft);
+        plantedLeaves.replaceChildren();
+        gameStatus.textContent = "Se acabó el tiempo. El árbol se reinició; vuelve a intentarlo.";
         startButton.hidden = false;
-        startButton.textContent = "Seguir jugando";
+        startButton.textContent = "Intentar de nuevo";
+        showCelebration("¡Jajaja, más rápido, Erika!");
       }
     }
 
@@ -517,6 +675,7 @@
     });
  
     startButton.addEventListener("click", startGame);
+    celebrationClose.addEventListener("click", () => celebrationDialog.close());
   </script>
 </body>
 </html>
