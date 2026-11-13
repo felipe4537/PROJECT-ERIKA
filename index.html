@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#163b27">
+  <title>Un árbol de palabras bonitas</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #183524;
+      --muted: #52685a;
+      --lime: #b7df4f;
+      --lime-light: #e8f3d4;
+      --green: #28613d;
+      --green-dark: #163b27;
+      --forest: #102d1d;
+      --paper: #f9fff4;
+      --line: #cdddc6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 48px 20px;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 10% 12%, #d9edaa 0, transparent 30%),
+        radial-gradient(ellipse at 90% 85%, #c8dfca 0, transparent 32%),
+        #f1f7e8;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .page {
+      width: min(100%, 900px);
+      margin: 0 auto;
+    }
+
+    .note {
+      overflow: hidden;
+      padding: clamp(28px, 6vw, 64px);
+      border: 1px solid #ffffffd9;
+      border-radius: 28px;
+      background: #f9fff4ed;
+      box-shadow: 0 24px 70px #102d1d24;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin: 0 0 16px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      color: var(--paper);
+      background: var(--forest);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 650px;
+      margin: 0 auto 16px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.3rem, 6vw, 4.2rem);
+      font-weight: 400;
+      letter-spacing: -0.045em;
+      line-height: 1.08;
+    }
+
+    .intro {
+      max-width: 500px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .divider {
+      width: 48px;
+      height: 1px;
+      margin: 32px auto;
+      background: var(--lime);
+    }
+
+    .hint {
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .game-stats {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .game-stats strong {
+      color: var(--green-dark);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .game-board {
+      position: relative;
+      width: 100%;
+      height: 370px;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+      border: 2px solid #b9d09e;
+      border-radius: 20px;
+      background:
+        radial-gradient(ellipse at 18% 20%, #ffffffa6 0 2px, transparent 3px),
+        radial-gradient(ellipse at 74% 70%, #ffffffa6 0 2px, transparent 3px),
+        linear-gradient(180deg, #e8f4dc 0%, #d7e9ca 70%, #c5ddaF 100%);
+      touch-action: manipulation;
+    }
+
+    .tree-scene {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: min(100%, 400px);
+      height: 100%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .tree-art {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .planted-leaves {
+      position: absolute;
+      inset: 0;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .planted-leaf {
+      position: absolute;
+      display: grid;
+      width: 78px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid #315d31;
+      border-radius: 78% 8% 78% 8%;
+      color: #173421;
+      font-size: 0.65rem;
+      font-weight: 750;
+      line-height: 1;
+      text-shadow: 0 1px #ffffff70;
+      background-color: var(--lime);
+      background-image:
+        linear-gradient(135deg, #ffffff55, transparent 48%),
+        linear-gradient(315deg, #17342120, transparent 58%);
+      box-shadow: inset -4px -3px 0 #17342118, 0 3px 6px #17342126;
+      transform: translate(-50%, -50%) rotate(var(--leaf-rotation, -12deg));
+      animation: leaf-appear 300ms ease-out both;
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .planted-word {
+      position: relative;
+      z-index: 1;
+    }
+
+    .planted-leaf::before {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      width: calc(100% - 20px);
+      border-top: 1px solid #315d3180;
+      content: "";
+      transform: rotate(-12deg);
+      pointer-events: none;
+    }
+
+    .moving-leaf {
+      position: absolute;
+      z-index: 2;
+      display: grid;
+      width: 120px;
+      height: 72px;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      color: #173421;
+      background: transparent;
+      cursor: pointer;
+      transition: left 100ms linear, top 100ms linear;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .moving-leaf::before {
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      left: 18px;
+      width: calc(100% - 36px);
+      border-top: 2px solid #315d318c;
+      content: "";
+      transform: rotate(-12deg);
+      pointer-events: none;
+    }
+
+    .moving-leaf::after {
+      position: absolute;
+      z-index: 1;
+      inset: 9px 18px;
+      border: 2px solid #28532e;
+      border-radius: 78% 8% 78% 8%;
+      background:
+        radial-gradient(ellipse at 30% 25%, #f1facb 0 8%, transparent 9%),
+        linear-gradient(135deg, #d6ef8d 0%, #b7df4f 52%, #8fbd3f 100%);
+      box-shadow: inset -4px -4px 0 #28613d26, 0 5px 12px #17342130;
+      content: "";
+      pointer-events: none;
+    }
+
+    .moving-leaf:hover {
+      transform: rotate(-12deg) scale(1.08);
+    }
+
+    .moving-leaf:focus-visible,
+    .game-button:focus-visible {
+      outline: 3px solid var(--lime);
+      outline-offset: 3px;
+    }
+
+    .game-controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .game-button {
+      padding: 12px 22px;
+      border: 1px solid var(--green);
+      border-radius: 999px;
+      color: white;
+      background: var(--green);
+      cursor: pointer;
+      transition: background 180ms ease, transform 180ms ease;
+    }
+
+    .game-button:hover {
+      transform: translateY(-1px);
+      background: var(--green-dark);
+    }
+
+    .game-button[hidden],
+    .moving-leaf[hidden] {
+      display: none;
+    }
+
+    .game-status {
+      min-height: 1.5em;
+      margin: 14px 0 0;
+      color: var(--green-dark);
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 24px;
+      color: #718475;
+      font-size: 0.82rem;
+    }
+
+    @keyframes leaf-appear {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.35) rotate(-35deg);
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(-12deg);
+      }
+    }
+
+    @media (max-width: 680px) {
+      body {
+        padding: 20px 14px;
+      }
+
+      .note {
+        border-radius: 22px;
+      }
+
+      .game-board {
+        height: 340px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <article class="note">
+      <p class="eyebrow">Minijuego</p>
+      <h1>Cosas que pienso de ti</h1>
+
+      <div class="divider" aria-hidden="true"></div>
+
+      <section aria-label="Minijuego del árbol">
+        <p class="hint">Haz clic en cada hoja que se mueve para colocarla en el árbol.</p>
+        <div class="game-stats">
+          <span>Hojas en el árbol: <strong id="score">0</strong> de 12</span>
+          <span>Tiempo: <strong id="time">30</strong> s</span>
+        </div>
+        <div class="game-board" id="game-board" aria-label="Árbol de palabras bonitas" aria-disabled="true">
+          <div class="tree-scene">
+            <svg class="tree-art" viewBox="0 0 400 370" preserveAspectRatio="none" aria-hidden="true">
+              <ellipse cx="200" cy="350" rx="116" ry="15" fill="#77975b" opacity=".35"></ellipse>
+              <circle cx="111" cy="126" r="63" fill="#4d8a45"></circle>
+              <circle cx="162" cy="87" r="62" fill="#5c9b49"></circle>
+              <circle cx="231" cy="83" r="64" fill="#4c8840"></circle>
+              <circle cx="291" cy="124" r="63" fill="#619e49"></circle>
+              <circle cx="88" cy="177" r="54" fill="#609b49"></circle>
+              <circle cx="153" cy="163" r="67" fill="#76ad4d"></circle>
+              <circle cx="235" cy="161" r="67" fill="#70a94b"></circle>
+              <circle cx="307" cy="177" r="53" fill="#4f8d40"></circle>
+              <path d="M194 264 C165 229 138 206 112 186 M204 260 C231 221 261 194 290 174 M195 241 C188 201 187 179 190 153 M205 242 C225 209 233 190 236 166" fill="none" stroke="#79563a" stroke-width="15" stroke-linecap="round"></path>
+              <path d="M183 350 C194 298 189 257 173 218 L222 218 C205 265 208 307 220 350 Z" fill="#79563a"></path>
+              <path d="M199 348 C196 312 195 278 199 246" fill="none" stroke="#9b754e" stroke-width="5" stroke-linecap="round" opacity=".65"></path>
+            </svg>
+            <div class="planted-leaves" id="planted-leaves"></div>
+          </div>
+          <button class="moving-leaf" id="moving-leaf" type="button" aria-label="Colocar hoja en el árbol" hidden></button>
+        </div>
+        <div class="game-controls">
+          <button class="game-button" id="start-button" type="button">Comenzar</button>
+        </div>
+        <p class="game-status" id="game-status" aria-live="polite">Pulsa «Comenzar».</p>
+      </section>
+
+    </article>
+  </main>
+
+  <script>
+    const words = [
+      "Amada",
+      "Respetada",
+      "Querida",
+      "Única",
+      "Valiosa",
+      "Capaz",
+      "Creativa",
+      "Fuerte",
+      "Brillante",
+      "Importante",
+      "Especial",
+      "Admirada"
+    ];
+    const leafRotations = [-18, 12, -8, 17, -14, 9, -16, 13, -10, 18, -12, 8];
+    const leafPositions = [
+      [14, 30], [38, 23], [62, 23], [86, 30],
+      [14, 47], [38, 42], [62, 42], [86, 47],
+      [26, 59], [50, 57], [74, 59], [50, 33]
+    ];
+    const leafColors = [
+      "#c5e87b", "#d4ed92", "#b2dc68", "#dceda7",
+      "#a6d35c", "#cde985", "#b7dd70", "#e0efad",
+      "#aed56c", "#c9e78e", "#d9ec9d", "#b3db79"
+    ];
+    const targetScore = words.length;
+    const roundLength = 30;
+    const leafMoveInterval = 300;
+    const gameBoard = document.querySelector("#game-board");
+    const movingLeaf = document.querySelector("#moving-leaf");
+    const plantedLeaves = document.querySelector("#planted-leaves");
+    const scoreDisplay = document.querySelector("#score");
+    const timeDisplay = document.querySelector("#time");
+    const gameStatus = document.querySelector("#game-status");
+    const startButton = document.querySelector("#start-button");
+    let score = 0;
+    let timeLeft = roundLength;
+    let timerId = null;
+    let leafMoveTimerId = null;
+    let gameRunning = false;
+
+    function moveLeaf() {
+      const maxLeft = gameBoard.clientWidth - movingLeaf.offsetWidth;
+      const maxTop = gameBoard.clientHeight - movingLeaf.offsetHeight;
+
+      movingLeaf.style.left = `${Math.random() * Math.max(0, maxLeft)}px`;
+      movingLeaf.style.top = `${Math.random() * Math.max(0, maxTop)}px`;
+    }
+
+    function plantLeaf(index) {
+      const leaf = document.createElement("span");
+      const [left, top] = leafPositions[index];
+      const word = document.createElement("span");
+      leaf.className = "planted-leaf";
+      word.className = "planted-word";
+      word.textContent = words[index];
+      leaf.style.left = `${left}%`;
+      leaf.style.top = `${top}%`;
+      leaf.style.setProperty("--leaf-rotation", `${leafRotations[index]}deg`);
+      leaf.style.backgroundColor = leafColors[index];
+      leaf.append(word);
+      plantedLeaves.append(leaf);
+    }
+
+    function endGame(won) {
+      gameRunning = false;
+      window.clearInterval(timerId);
+      window.clearInterval(leafMoveTimerId);
+      movingLeaf.hidden = true;
+      gameBoard.setAttribute("aria-disabled", "true");
+
+      if (won) {
+        gameStatus.textContent =
+          "¡Terminaste! Eres muy especial, Erika. Que siempre se cumplan los deseos de tu corazón.";
+      } else {
+        gameStatus.textContent = "Se acabó el tiempo. Puedes seguir llenando el árbol.";
+        startButton.hidden = false;
+        startButton.textContent = "Seguir jugando";
+      }
+    }
+
+    function startGame() {
+      window.clearInterval(timerId);
+      window.clearInterval(leafMoveTimerId);
+      timeLeft = roundLength;
+      gameRunning = true;
+      timeDisplay.textContent = String(timeLeft);
+      gameStatus.textContent = "Haz clic en la hoja con la palabra que va a decorar el árbol.";
+      startButton.hidden = true;
+      movingLeaf.hidden = false;
+      movingLeaf.setAttribute("aria-label", "Colocar hoja en el árbol");
+      gameBoard.setAttribute("aria-disabled", "false");
+      moveLeaf();
+
+      leafMoveTimerId = window.setInterval(moveLeaf, leafMoveInterval);
+
+      timerId = window.setInterval(() => {
+        timeLeft -= 1;
+        timeDisplay.textContent = String(timeLeft);
+
+        if (timeLeft <= 0) {
+          endGame(false);
+        }
+      }, 1000);
+    }
+
+    function placeMovingLeaf() {
+      if (!gameRunning) {
+        return;
+      }
+
+      plantLeaf(score);
+      score += 1;
+      scoreDisplay.textContent = String(score);
+
+      if (score >= targetScore) {
+        startButton.hidden = true;
+        endGame(true);
+      } else {
+        movingLeaf.setAttribute("aria-label", "Colocar hoja en el árbol");
+        gameStatus.textContent = "Una hoja más para el árbol.";
+        moveLeaf();
+      }
+    }
+
+    movingLeaf.addEventListener("pointerdown", (event) => {
+      if (!event.isPrimary || event.button !== 0) {
+        return;
+      }
+
+      event.preventDefault();
+      placeMovingLeaf();
+    });
+
+    movingLeaf.addEventListener("click", (event) => {
+      if (event.detail === 0) {
+        placeMovingLeaf();
+      }
+    });
+ 
+    startButton.addEventListener("click", startGame);
+  </script>
+</body>
+</html>
